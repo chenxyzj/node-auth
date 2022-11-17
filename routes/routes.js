@@ -9,6 +9,7 @@ router.get('/', (req, res) => {
 })
 
 router.post('/register', async (req, res) => {
+    console.log(" new request to register")
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
     const user = new User({
@@ -19,11 +20,11 @@ router.post('/register', async (req, res) => {
 
     const result = await user.save()
     const { password, ...data } = await result.toJSON()
-
     res.send(data)
 })
 
 router.post('/login', async (req, res) => {
+    console.log(" new request to login")
     const user = await User.findOne({ email: req.body.email })
     if (!user) {
         return res.status(404).send({
@@ -60,8 +61,7 @@ router.get('/user', async (req, res) => {
         }
         const user = await User.findOne({ _id: claims._id })
 
-        const {password, ...data} = await user.toJSON();
-        
+        const {password, ...data} = await user.toJSON();    
         // res.send(claims)
         res.send(data)
     }catch(err){
@@ -73,7 +73,7 @@ router.get('/user', async (req, res) => {
 })
 
 router.post('/logout', (req,res) =>{
-    res.cookie('jwt','',{maxAge:0})
+    res.cookie('jwt','',{maxAge:0}) 
     return res.send({
         message: 'success'
     })
