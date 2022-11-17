@@ -88,7 +88,14 @@ router.post('/logout', (req,res) =>{
 
 router.post('/forgot', async (req,res)=>{
     const email = req.body.email;
-    const token = Math.random.toString(20).substr(2,12);
+    let token;
+    let foundToken;
+    do{
+       token = Math.random().toString(20).substr(2,12);
+       foundToken = await PasswordReset.findOne({token});
+       console.log(foundToken);
+    } while(foundToken);
+
 
     const passwordReset = new PasswordReset({
         email,
@@ -97,7 +104,7 @@ router.post('/forgot', async (req,res)=>{
 
     await passwordReset.save()
 
-    const url = `http://localhost:8000/reset/${token}`
+    const url = `http://localhost:8080/reset/${token}`
 
     await transporter.sendMail({
         from: 'admin@example.com',
