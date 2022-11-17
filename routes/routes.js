@@ -1,8 +1,15 @@
 const router = require('express').Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const User = require('../models/user')
+const nodemailer = require('nodemailer')
 
+const User = require('../models/user')
+const PasswordReset = require('../models/passwordReset')
+
+const transporter = nodemailer.createTransport({
+    host: '0.0.0.0',
+    port: 1025
+})
 
 router.get('/', (req, res) => {
     res.send('Hello')
@@ -77,6 +84,60 @@ router.post('/logout', (req,res) =>{
     return res.send({
         message: 'success'
     })
+})
+
+router.post('/forgot', async (req,res)=>{
+    const email = req.body.email;
+    const token = Math.random.toString(20).substr(2,12);
+
+    const passwordReset = new PasswordReset({
+        email,
+        token
+    })
+
+    await passwordReset.save()
+
+    const url = `http://localhost:8000/reset/${token}`
+
+    await transporter.sendMail({
+        from: 'admin@example.com',
+        to: email,
+        subject: 'Reset your password!',
+        html: `Click <a href="${url}">here</a> to reset your password!`
+    })
+
+    res.send({
+        message: 'Check your email!'
+    })
+})
+
+router.post('/reset', async (req,res) => {
+    if(req.body.password !== req.body.password_confirm){
+        return res.status(400).send({
+            message: 'Passwords do not match!'
+        })
+    }
+
+    const passwordReset = await PasswordReset.findOne({token: req.body.token})
+
+    const {email} =  await passwordReset.toJSON();
+
+    const user = await User.findOne({email});
+    
+    if(!user) {
+        return res.status(404).send({
+            message: 'User not found!'
+        })
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(req.body.password, salt);
+    user.save()
+
+    res.send({
+        message: 'success'
+    })
+    
 })
 
 module.exports = router
